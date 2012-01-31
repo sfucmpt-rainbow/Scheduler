@@ -1,0 +1,8 @@
+Rainbow Table Scheduler
+=======================
+
+Purpose
+
+To manage the the space of plaintexts and to send to send Nodes partitions of the space to hash.
+
+The scheduler will be configured to hash a certain part the entire plaintext space, e.g. [a-z]{1,5} (i.e. All lowercase alphabetic strings of length 1 to 5). From this it will partition this assigned space into equal sized blocks. The scheduler will also track all the Super Nodes? and track the approximate rate that each Super Node processes hashes. Using this information it will assign each Super Node a batch of plaintext blocks which then each Super Node will be responsible for checking hashes against those blocks. The scheduler will also manage when Super Nodes connect and disconnect.
