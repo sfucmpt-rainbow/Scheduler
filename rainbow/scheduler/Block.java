@@ -1,3 +1,5 @@
+package rainbow.scheduler;
+
 /*
  * Represents a single block
  * Includes both string length and block number
