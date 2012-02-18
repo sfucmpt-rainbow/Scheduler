@@ -1,6 +1,6 @@
 
-import java.util.ArrayList;
 import java.util.PriorityQueue;
+import java.util.TreeSet;
 
 /*
  * Manages all the partitions of the plaintext space Use this to request a
@@ -18,14 +18,14 @@ public class PartitionManager {
     private Block nextAvailable;
     private String alphabet;
     // Keeps track of which blocks are being worked on
-    private PriorityQueue<Block> processing;
+    private TreeSet<Block> processing;
     // Keeps track of which blocks are being cached in rainbow tables
-    private PriorityQueue<Block> cached;
+    private TreeSet<Block> cached;
 
     public PartitionManager(String alphabet, int maxStringLength) {
         this.alphabet = alphabet;
-        processing = new PriorityQueue<>();
-        cached = new PriorityQueue<>();
+        processing = new TreeSet<>();
+        cached = new TreeSet<>();
         reset();
     }
     /*
@@ -89,12 +89,15 @@ public class PartitionManager {
         }
         notifyComplete(b);
     }
+    /*
+     * For testing purposes only
+     */
 
-    public PriorityQueue<Block> getCached() {
+    public TreeSet<Block> getCached() {
         return cached;
     }
 
-    public PriorityQueue<Block> getProcessing() {
+    public TreeSet<Block> getProcessing() {
         return processing;
     }
 }
