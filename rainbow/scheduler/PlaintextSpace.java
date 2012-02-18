@@ -1,3 +1,5 @@
+package rainbow.scheduler;
+
 
 
 /*
@@ -27,7 +29,25 @@
  */
 class PlaintextSpace {
 
-    public static final int BLOCK_SIZE = 1000000; // 1 million
+    public static final int BLOCK_SIZE = 100000000; // 100 million
+
+    /*
+     * Calculates the number of blocks given a alphabet and the length of the
+     * plaintext
+     */
+    public static long getNumberOfBlocks(String alphabet, int textLength) {
+        long totalSize = 1;
+        int alphabetLength = alphabet.length();
+        for (int i = 0; i < textLength; i++) {
+            totalSize *= alphabetLength;
+        }
+        // Not a very efficient way of doing it but it works
+        if (totalSize % BLOCK_SIZE == 0) {
+            return totalSize / BLOCK_SIZE;
+        } else {
+            return totalSize / BLOCK_SIZE + 1;
+        }
+    }
     String alphabet;
     int alphabetLength;
     int blockNumber;
@@ -42,13 +62,24 @@ class PlaintextSpace {
             throw new RuntimeException("Error, too many plaintexts. Possible overflow error");
         }
     }
+    /*
+     * Shortcut to the static function
+     */
 
+    public long getNumberOfBlocks() {
+        return getNumberOfBlocks(alphabet, textLength);
+    }
     /*
      * Gets a text value for a certain index
      */
+
     public String getText(int blockIndex) {
         char[] characterValues = new char[textLength];
-        long index = blockNumber * BLOCK_SIZE + blockIndex;
+        /* 
+         * Calculate the index of this text
+         * Make sure one value is casted to long so we don't overflow int
+         */
+        long index = (long)blockNumber * BLOCK_SIZE + blockIndex;
         for (int i = 0; i < textLength; i++) {
             int offset = (int) (index % alphabetLength);
             characterValues[textLength - 1 - i] = alphabet.charAt(offset);
@@ -59,6 +90,7 @@ class PlaintextSpace {
     /*
      * Some basic unit tests, should be moved elsewhere later
      */
+
     public static void test() {
         PlaintextSpace ps = new PlaintextSpace(
                 AlphabetGenerator.generateAlphabet(
@@ -78,10 +110,20 @@ class PlaintextSpace {
                 AlphabetGenerator.Types.NUMBERS),
                 32, // Block Number
                 12); // Text length
-        
+        System.out.println(String.format("There are %s blocks", ps1.getNumberOfBlocks()));
         // Since its only numbers should just be block_number * block_size
-        // i.e. 32 million with padded 0's
-        if (!ps1.getText(0).equals("000032000000")) {
+        // i.e. 3.2 billion with padded 0's
+        if (!ps1.getText(0).equals("003200000000")) {
+            throw new RuntimeException(String.format("Got %s and expected %s",ps1.getText(0),"003200000000"));
+        }
+        // All numbers from 000,000,000 to 999,999,999 = 1b combinations
+        // Given blocks of 100m there should be 10 blocks
+        if (getNumberOfBlocks(AlphabetGenerator.generateAlphabet(AlphabetGenerator.Types.NUMBERS), 9) != 10) {
+            throw new RuntimeException();
+        }
+        // a-z = 26 letters, 5 character string = 26^5 = 11.8m combinations
+        // blocks of 100m means there should be 1 blocks
+        if (getNumberOfBlocks(AlphabetGenerator.generateAlphabet(AlphabetGenerator.Types.LOWER_CASE), 5) != 1) {
             throw new RuntimeException();
         }
     }
