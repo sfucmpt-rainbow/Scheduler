@@ -1,4 +1,4 @@
-package rainbow.scheduler;
+package rainbow.partition;
 
 /*
  * Represents a single block
