@@ -1,7 +1,5 @@
 package rainbow.partition;
 
-
-import java.util.PriorityQueue;
 import java.util.TreeSet;
 
 /*
@@ -17,17 +15,20 @@ import java.util.TreeSet;
  */
 public class PartitionManager {
 
-    private Block nextAvailable;
+    private BlockRange nextAvailable;
     private String alphabet;
     // Keeps track of which blocks are being worked on
-    private TreeSet<Block> processing;
+    private TreeSet<BlockRange> processing;
     // Keeps track of which blocks are being cached in rainbow tables
-    private TreeSet<Block> cached;
+    private TreeSet<BlockRange> cached;
+    // What the largest strings we allow are
+    private int maxStringLength;
 
     public PartitionManager(String alphabet, int maxStringLength) {
         this.alphabet = alphabet;
         processing = new TreeSet<>();
         cached = new TreeSet<>();
+        this.maxStringLength = maxStringLength;
         reset();
     }
     /*
@@ -35,7 +36,7 @@ public class PartitionManager {
      */
 
     public final void reset() {
-        nextAvailable = new Block(1, 0);
+        nextAvailable = new BlockRange(1, 0, 0);
         processing.clear();
     }
 
@@ -45,37 +46,74 @@ public class PartitionManager {
      *
      * Algorithm - just starts from the bottom and grabs every available block
      *
+     * TODO: Doesn't currently check the cached for cached blocks
      */
-    public Block[] requestPartition(int size) {
-        Block[] blocks = new Block[size];
-        int blocksIndex = 0;
+    public BlockRange requestPartition(int size) {
+        BlockRange block;
         long numberOfBlocks = PlaintextSpace.getNumberOfBlocks(alphabet, nextAvailable.stringLength);
-        while (blocksIndex < size) {
-            Block selected = nextAvailable.clone();
-            // Ensure that the block is not cached
-            if (!cached.contains(selected)) {
-                // Add to return list and processing list
-                processing.add(selected);
-                blocks[blocksIndex++] = selected;
-            }
-            // Modify nextAvailable
-            nextAvailable.blockNumber++;
-            if (nextAvailable.blockNumber >= numberOfBlocks) {
-                nextAvailable.blockNumber = 0;
+        // Gets the next block that is larger than nextAvailable
+        // Unnecessary now but helps implement checking the cache later
+        block = processing.ceiling(nextAvailable);
+        //No block found, we can choose the size
+        if (block == null) {
+            /*
+             * Possible situations:
+             *
+             * if nextAvailable block number == numberOfBlocks: current
+             * stringLength is full, move to the next one
+             *
+             * elseif nextAvailable + size > numberOfBlocks: we reached the end
+             * of stringLength, assign as many blocks as possible
+             *
+             * else: normal assignment
+             */
+            if (nextAvailable.startBlockNumber == numberOfBlocks) {
+                // Increase the string length
                 nextAvailable.stringLength++;
-                numberOfBlocks = PlaintextSpace.getNumberOfBlocks(alphabet, nextAvailable.stringLength);
+                // Reset the block number
+                nextAvailable.startBlockNumber = 0;
+                if (nextAvailable.stringLength > maxStringLength) {
+                    // TODO: handle this
+                }
+                // Return the new value, recursive function call
+                return requestPartition(size);
+            } else if (nextAvailable.startBlockNumber + size > numberOfBlocks) {
+                block = nextAvailable.clone();
+                block.startBlockNumber = nextAvailable.startBlockNumber;
+                block.endBlockNumber = numberOfBlocks;
+            } else {
+                block = nextAvailable.clone();
+                block.startBlockNumber = nextAvailable.startBlockNumber;
+                block.endBlockNumber = block.startBlockNumber + size;
             }
+        } else {
+            /*
+             * this should not occur, we always fill in the processing table
+             * from the bottom
+             */
+            throw new RuntimeException("Block above nextAvailable encountered");
         }
-        return blocks;
+        processing.add(block);
+        nextAvailable.startBlockNumber = block.endBlockNumber;
+        return block;
     }
     /*
      * Notify Complete, tells the partition manager that a block is complete
      */
 
-    public void notifyComplete(Block b) {
+    public void notifyComplete(BlockRange b) {
         if (processing.contains(b)) {
             processing.remove(b);
         }
+    }
+    /*
+     * Request Cache, requests a block to be cached
+     *
+     * TODO: only a function stub
+     */
+
+    public BlockRange requestCache(BlockRange b) {
+        throw new UnsupportedOperationException();
     }
     /*
      * Notify Cache, tells the partition manager that this block is being cached
@@ -85,21 +123,29 @@ public class PartitionManager {
      * processing list
      */
 
-    public void notifyCache(Block b) {
+    public void notifyCache(BlockRange b) {
         if (!cached.contains(b)) {
             cached.add(b);
         }
         notifyComplete(b);
     }
     /*
+     * Release cache, tells the partition manager that this blockrange is no
+     * longer being cached TODO:function stub
+     */
+
+    public void releaseCache(BlockRange b) {
+        throw new UnsupportedOperationException();
+    }
+    /*
      * For testing purposes only
      */
 
-    public TreeSet<Block> getCached() {
+    public TreeSet<BlockRange> getCached() {
         return cached;
     }
 
-    public TreeSet<Block> getProcessing() {
+    public TreeSet<BlockRange> getProcessing() {
         return processing;
     }
 }
