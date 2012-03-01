@@ -1,4 +1,4 @@
-package rainbow.partition;
+package rainbow.scheduler.partition;
 
 
 
