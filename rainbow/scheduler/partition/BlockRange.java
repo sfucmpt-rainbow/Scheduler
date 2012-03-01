@@ -5,22 +5,20 @@ package rainbow.scheduler.partition;
  */
 public class BlockRange implements Comparable<BlockRange> {
 
-	/* Unused for now
-	public enum BlockRangeStatus {
-
+	public enum Status {
 		INCOMPLETE,
 		PROCESSING,
+		CACHING,
 		CACHED,
 		COMPLETE;
 	}
-	*/
+	
 	public int stringLength;
 	public long startBlockNumber;
 	public long endBlockNumber;
-	/* Unused for now
 	//Only used by the scheduler to maintain the blocks current status
-	public BlockRangeStatus status = BlockRangeStatus.INCOMPLETE;
-	*/
+	private Status status = Status.INCOMPLETE;
+	
 	/*
 	* Represents a range from startBlockNumber to endBlockNumber
 	* includes startblockNumber but excludes endBlockNumber so that
@@ -37,6 +35,19 @@ public class BlockRange implements Comparable<BlockRange> {
 	 * Compares by string length first then block number Only compares the
 	 * starting block number, works assuming blocks don't overlap
 	 */
+
+	public Status getStatus() {
+		return status;
+	}
+
+	public void setStatus(Status status) {
+		if(status == Status.INCOMPLETE){
+			// Incomplete should never occur
+			// If a block does not exist then it is incomplete
+			throw new RuntimeException("Error, assigning incomplete status");
+		}
+		this.status = status;
+	}
 
 	@Override
 	public int compareTo(BlockRange o) {
@@ -65,6 +76,6 @@ public class BlockRange implements Comparable<BlockRange> {
 
 	@Override
 	public String toString() {
-		return String.format("Block{stringLength=%s, blocks(%s,%s)}", stringLength, startBlockNumber, endBlockNumber);
+		return String.format("Block{stringLength=%s, blocks(%s,%s), status=%s}", stringLength, startBlockNumber, endBlockNumber, status.toString());
 	}
 }
