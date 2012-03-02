@@ -37,6 +37,7 @@ public class PartitionManager {
 	/*
 	 * Resets the consumed blocks, maintains cached blocks
 	 */
+
 	public final void reset() {
 		nextAvailable = new BlockRange(1, 0, 0);
 		processing.clear();
@@ -128,19 +129,23 @@ public class PartitionManager {
 	 * Notify Failure, tells the partition manager that a block has failed
 	 * Generally caused by a client dcing without notice
 	 */
-	public void notifyFailure(BlockRange b){
-		if(processing.contains(b)){
+
+	public void notifyFailure(BlockRange b) {
+		if (processing.contains(b)) {
 			processing.remove(b);
 		}
-		nextAvailable = b;
+		if (b.startBlockNumber < nextAvailable.startBlockNumber) {
+			nextAvailable = b;
+		}
 	}
 	/*
 	 * Request Cache, requests a block to be cached
 	 *
 	 * For now it only gives blocks in maxStringLength range
-	 * 
+	 *
 	 * Note: Almost a duplicate of requestPartition
 	 */
+
 	public BlockRange requestCache(int size) {
 		int stringLength = maxStringLength;
 		BlockRange result = new BlockRange(stringLength, 0, 0);
@@ -202,7 +207,7 @@ public class PartitionManager {
 	 */
 
 	public void notifyCache(BlockRange b) {
-		if(caching.contains(b)){
+		if (caching.contains(b)) {
 			caching.remove(b);
 		}
 		if (!cached.contains(b)) {
@@ -217,6 +222,7 @@ public class PartitionManager {
 	 * Release cache, tells the partition manager that this blockrange is no
 	 * longer being cached
 	 */
+
 	public void releaseCache(BlockRange b) {
 		cached.remove(b);
 	}
@@ -230,7 +236,7 @@ public class PartitionManager {
 
 	public TreeSet<BlockRange> getCaching() {
 		return caching;
-	}	
+	}
 
 	public TreeSet<BlockRange> getProcessing() {
 		return processing;
