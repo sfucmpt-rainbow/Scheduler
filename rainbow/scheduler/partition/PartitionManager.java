@@ -14,7 +14,7 @@ import java.util.TreeSet;
  *
  */
 public class PartitionManager {
-
+	
 	private Partition nextAvailable;
 	private String alphabet;
 	// Keeps track of which blocks are being worked on
@@ -25,7 +25,7 @@ public class PartitionManager {
 	private TreeSet<Partition> caching;
 	// What the largest strings we allow are
 	private int maxStringLength;
-
+	
 	public PartitionManager(String alphabet, int maxStringLength) {
 		this.alphabet = alphabet;
 		processing = new TreeSet<>();
@@ -37,7 +37,7 @@ public class PartitionManager {
 	/*
 	 * Resets the consumed blocks, maintains cached blocks
 	 */
-
+	
 	public final void reset() {
 		nextAvailable = new Partition(1, 0, 0);
 		processing.clear();
@@ -56,47 +56,65 @@ public class PartitionManager {
 			return null;
 		}
 		Partition result = nextAvailable.clone();
-		long numberOfBlocks = PlaintextSpace.getNumberOfBlocks(alphabet, nextAvailable.stringLength);
-		while (true) {
-			boolean blockIsGood = true;
+		// Find the next start block
+		result = findPartitionStartBlock(result, size);
+		if (result.stringLength < nextAvailable.stringLength) {
+			// We need to move up to the next string length
+			return requestPartition(size);
+		}
+		// We found a good start point, now find the end point
+		result = findPartitionEndBlock(result, size);
+		result.setStatus(Partition.Status.PROCESSING);
+		if (result.endBlockNumber > nextAvailable.startBlockNumber) {
+			nextAvailable.startBlockNumber = result.endBlockNumber;
+		}
+		processing.add(result);
+		return result;
+	}
+	
+	private Partition findPartitionStartBlock(Partition result, int size) {
+		long numberOfBlocks = PlaintextSpace.getNumberOfBlocks(alphabet, result.stringLength);
+		boolean blockIsGood;
+		do {
+			blockIsGood = true;
 			// First check for processing blocks
 			Partition pBlock = processing.ceiling(result);
-			if (pBlock != null && pBlock.startBlockNumber == result.startBlockNumber) {
+			if (pBlock != null && pBlock.startBlockEquals(result)) {
 				result.startBlockNumber = pBlock.endBlockNumber;
 				blockIsGood = false;
 			}
 			// Now check for cached blocks
 			Partition cBlock = cached.ceiling(result);
-			if (cBlock != null && cBlock.startBlockNumber == result.startBlockNumber) {
+			if (cBlock != null && cBlock.startBlockEquals(result)) {
 				result.startBlockNumber = cBlock.endBlockNumber;
 				blockIsGood = false;
 			}
 			// Check if we hit the end of the number of blocks
 			if (result.startBlockNumber >= numberOfBlocks) {
-				// Reset
+				// Reset, requestCache will notice that this has changed
 				nextAvailable.stringLength++;
 				nextAvailable.startBlockNumber = 0;
-				if (nextAvailable.stringLength > maxStringLength) {
-					// No more blocks found, space has been exausted
-					return null;
-				}
-				// Tail recursion(hopefully)
-				return requestPartition(size);
+				return result;
 			}
 			// If all of the above pass, check the flag
-			if (blockIsGood) {
-				break;
-			}
-		}
-		// We found a good start point, now find the end point
+		} while (!blockIsGood);
+		return result;
+	}
+	
+	private Partition findPartitionEndBlock(Partition result, int size) {
+		long numberOfBlocks = PlaintextSpace.getNumberOfBlocks(alphabet, result.stringLength);
 		// Set a max value and decrease from there
 		result.endBlockNumber = Long.MAX_VALUE;
 		Partition pBlock = processing.ceiling(result);
-		if (pBlock != null && result.endBlockNumber > pBlock.startBlockNumber) {
+		if (pBlock != null
+				&& result.stringLength == pBlock.stringLength
+				&& result.endBlockNumber > pBlock.startBlockNumber) {
 			result.endBlockNumber = pBlock.startBlockNumber;
 		}
 		Partition cBlock = cached.ceiling(result);
-		if (cBlock != null && result.endBlockNumber > cBlock.startBlockNumber) {
+		if (cBlock != null
+				&& result.stringLength == cBlock.stringLength
+				&& result.endBlockNumber > cBlock.startBlockNumber) {
 			result.endBlockNumber = cBlock.startBlockNumber;
 		}
 		// Check if we exceeded the size given
@@ -110,8 +128,6 @@ public class PartitionManager {
 		if (result.startBlockNumber >= result.endBlockNumber) {
 			throw new RuntimeException("Something went horribly wrong with the algorithm(probably a bug)");
 		}
-		result.setStatus(Partition.Status.PROCESSING);
-		processing.add(result);
 		return result;
 	}
 
@@ -129,12 +145,12 @@ public class PartitionManager {
 	 * Notify Failure, tells the partition manager that a block has failed
 	 * Generally caused by a client dcing without notice
 	 */
-
+	
 	public void notifyFailure(Partition b) {
 		if (processing.contains(b)) {
 			processing.remove(b);
 		}
-		if (b.startBlockNumber < nextAvailable.startBlockNumber) {
+		if (b.compareTo(nextAvailable) < 0) {
 			nextAvailable = b;
 		}
 	}
@@ -145,22 +161,37 @@ public class PartitionManager {
 	 *
 	 * Note: Almost a duplicate of requestPartition
 	 */
-
+	
 	public Partition requestCache(int size) {
 		int stringLength = maxStringLength;
 		Partition result = new Partition(stringLength, 0, 0);
-		long numberOfBlocks = PlaintextSpace.getNumberOfBlocks(alphabet, nextAvailable.stringLength);
-		while (true) {
-			boolean blockIsGood = true;
+		// Find the next start block
+		result = findCacheStartBlock(result, size);
+		if (result == null) {
+			return result;
+		}
+		// We found a good start point, now find the end point
+		result = findCacheEndBlock(result, size);
+		result.setStatus(Partition.Status.CACHING);
+		caching.add(result);
+		return result;
+	}
+	
+	private Partition findCacheStartBlock(Partition result, int size) {
+		long numberOfBlocks = PlaintextSpace.getNumberOfBlocks(alphabet, result.stringLength);
+		
+		boolean blockIsGood;
+		do {
+			blockIsGood = true;
 			// First check for caching blocks
 			Partition c1Block = caching.ceiling(result);
-			if (c1Block != null && c1Block.startBlockNumber == result.startBlockNumber) {
+			if (c1Block != null && c1Block.startBlockEquals(result)) {
 				result.startBlockNumber = c1Block.endBlockNumber;
 				blockIsGood = false;
 			}
 			// Now check for cached blocks
 			Partition c2Block = cached.ceiling(result);
-			if (c2Block != null && c2Block.startBlockNumber == result.startBlockNumber) {
+			if (c2Block != null && c2Block.startBlockEquals(result)) {
 				result.startBlockNumber = c2Block.endBlockNumber;
 				blockIsGood = false;
 			}
@@ -170,19 +201,24 @@ public class PartitionManager {
 				return null;
 			}
 			// If all of the above pass, check the flag
-			if (blockIsGood) {
-				break;
-			}
-		}
-		// We found a good start point, now find the end point
+		} while (!blockIsGood);
+		return result;
+	}
+	
+	private Partition findCacheEndBlock(Partition result, int size) {
+		long numberOfBlocks = PlaintextSpace.getNumberOfBlocks(alphabet, result.stringLength);
 		// Set a max value and decrease from there
 		result.endBlockNumber = Long.MAX_VALUE;
 		Partition c1Block = caching.ceiling(result);
-		if (c1Block != null && result.endBlockNumber > c1Block.startBlockNumber) {
+		if (c1Block != null
+				&& result.stringLength == c1Block.stringLength
+				&& result.endBlockNumber > c1Block.startBlockNumber) {
 			result.endBlockNumber = c1Block.startBlockNumber;
 		}
 		Partition c2Block = cached.ceiling(result);
-		if (c2Block != null && result.endBlockNumber > c2Block.startBlockNumber) {
+		if (c2Block != null
+				&& result.stringLength == c2Block.stringLength
+				&& result.endBlockNumber > c2Block.startBlockNumber) {
 			result.endBlockNumber = c2Block.startBlockNumber;
 		}
 		// Check if we exceeded the size given
@@ -196,8 +232,6 @@ public class PartitionManager {
 		if (result.startBlockNumber >= result.endBlockNumber) {
 			throw new RuntimeException("Something went horribly wrong with the algorithm(probably a bug)");
 		}
-		result.setStatus(Partition.Status.CACHING);
-		caching.add(result);
 		return result;
 	}
 	/*
@@ -205,7 +239,7 @@ public class PartitionManager {
 	 * in a rainbowtable and should not be given as a job
 	 *
 	 */
-
+	
 	public void notifyCache(Partition b) {
 		if (caching.contains(b)) {
 			caching.remove(b);
@@ -222,22 +256,27 @@ public class PartitionManager {
 	 * Release cache, tells the partition manager that this blockrange is no
 	 * longer being cached
 	 */
-
+	
 	public void releaseCache(Partition b) {
-		cached.remove(b);
+		if (cached.contains(b)) {
+			cached.remove(b);
+		}
+		if (caching.contains(b)) {
+			caching.remove(b);
+		}
 	}
 	/*
 	 * For testing purposes only
 	 */
-
+	
 	public TreeSet<Partition> getCached() {
 		return cached;
 	}
-
+	
 	public TreeSet<Partition> getCaching() {
 		return caching;
 	}
-
+	
 	public TreeSet<Partition> getProcessing() {
 		return processing;
 	}

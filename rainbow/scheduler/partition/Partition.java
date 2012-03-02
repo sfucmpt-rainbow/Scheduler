@@ -68,6 +68,10 @@ public class Partition implements Comparable<Partition> {
 				&& this.startBlockNumber == other.startBlockNumber
 				&& this.endBlockNumber == other.endBlockNumber;
 	}
+	public boolean startBlockEquals(Partition p){
+		return this.stringLength == p.stringLength
+				&& this.startBlockNumber == p.startBlockNumber;
+	}
 
 	@Override
 	public Partition clone() {
