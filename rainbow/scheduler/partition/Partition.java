@@ -3,7 +3,7 @@ package rainbow.scheduler.partition;
 /*
  * Represents a single block Includes both string length and block number
  */
-public class BlockRange implements Comparable<BlockRange> {
+public class Partition implements Comparable<Partition> {
 
 	public enum Status {
 		INCOMPLETE,
@@ -25,7 +25,7 @@ public class BlockRange implements Comparable<BlockRange> {
 	* for(long i=startBlockNumber;i<endBlockNumber;i++)
 	* works as expected
 	*/
-	public BlockRange(int stringLength, long startBlockNumber, long endBlockNumber) {
+	public Partition(int stringLength, long startBlockNumber, long endBlockNumber) {
 		this.stringLength = stringLength;
 		this.startBlockNumber = startBlockNumber;
 		this.endBlockNumber = endBlockNumber;
@@ -50,7 +50,7 @@ public class BlockRange implements Comparable<BlockRange> {
 	}
 
 	@Override
-	public int compareTo(BlockRange o) {
+	public int compareTo(Partition o) {
 		if (this.stringLength != o.stringLength) {
 			return Integer.compare(this.stringLength, o.stringLength);
 		} else {
@@ -60,18 +60,18 @@ public class BlockRange implements Comparable<BlockRange> {
 
 	@Override
 	public boolean equals(Object obj) {
-		if (obj instanceof BlockRange == false) {
+		if (obj instanceof Partition == false) {
 			return false;
 		}
-		BlockRange other = (BlockRange) obj;
+		Partition other = (Partition) obj;
 		return this.stringLength == other.stringLength
 				&& this.startBlockNumber == other.startBlockNumber
 				&& this.endBlockNumber == other.endBlockNumber;
 	}
 
 	@Override
-	public BlockRange clone() {
-		return new BlockRange(stringLength, startBlockNumber, endBlockNumber);
+	public Partition clone() {
+		return new Partition(stringLength, startBlockNumber, endBlockNumber);
 	}
 
 	@Override

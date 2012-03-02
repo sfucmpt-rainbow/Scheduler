@@ -19,7 +19,7 @@ public class Tests {
 	public static void test1() {
 		System.out.println("Beginning test1");
 		PartitionManager p = new PartitionManager(AlphabetGenerator.generateAlphabet(AlphabetGenerator.Types.LOWER_CASE), 8);
-		BlockRange[] b = new BlockRange[10];
+		Partition[] b = new Partition[10];
 		for (int i = 0; i < 10; i++) {
 			b[i] = p.requestPartition(100);
 			System.out.println(b[i]);
@@ -31,7 +31,7 @@ public class Tests {
 		p.notifyComplete(b[8]);
 		p.notifyFailure(b[7]);
 		System.out.println(String.format("There are %s Blocks being cached", p.getProcessing().size()));
-		for (BlockRange block : p.getProcessing()) {
+		for (Partition block : p.getProcessing()) {
 			System.out.println(block);
 		}
 	}

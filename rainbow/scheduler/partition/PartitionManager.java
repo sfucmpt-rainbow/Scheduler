@@ -15,14 +15,14 @@ import java.util.TreeSet;
  */
 public class PartitionManager {
 
-	private BlockRange nextAvailable;
+	private Partition nextAvailable;
 	private String alphabet;
 	// Keeps track of which blocks are being worked on
-	private TreeSet<BlockRange> processing;
+	private TreeSet<Partition> processing;
 	// Keeps track of which blocks are being cached in rainbow tables
-	private TreeSet<BlockRange> cached;
+	private TreeSet<Partition> cached;
 	// Keeps track of which blocks are having their cache built but is not ready yet
-	private TreeSet<BlockRange> caching;
+	private TreeSet<Partition> caching;
 	// What the largest strings we allow are
 	private int maxStringLength;
 
@@ -39,7 +39,7 @@ public class PartitionManager {
 	 */
 
 	public final void reset() {
-		nextAvailable = new BlockRange(1, 0, 0);
+		nextAvailable = new Partition(1, 0, 0);
 		processing.clear();
 	}
 
@@ -50,23 +50,23 @@ public class PartitionManager {
 	 * nextAvailable always has the first empty block counting from the bottom
 	 *
 	 */
-	public BlockRange requestPartition(int size) {
+	public Partition requestPartition(int size) {
 		if (nextAvailable.stringLength > maxStringLength) {
 			// No more blocks found, space has been exausted
 			return null;
 		}
-		BlockRange result = nextAvailable.clone();
+		Partition result = nextAvailable.clone();
 		long numberOfBlocks = PlaintextSpace.getNumberOfBlocks(alphabet, nextAvailable.stringLength);
 		while (true) {
 			boolean blockIsGood = true;
 			// First check for processing blocks
-			BlockRange pBlock = processing.ceiling(result);
+			Partition pBlock = processing.ceiling(result);
 			if (pBlock != null && pBlock.startBlockNumber == result.startBlockNumber) {
 				result.startBlockNumber = pBlock.endBlockNumber;
 				blockIsGood = false;
 			}
 			// Now check for cached blocks
-			BlockRange cBlock = cached.ceiling(result);
+			Partition cBlock = cached.ceiling(result);
 			if (cBlock != null && cBlock.startBlockNumber == result.startBlockNumber) {
 				result.startBlockNumber = cBlock.endBlockNumber;
 				blockIsGood = false;
@@ -91,11 +91,11 @@ public class PartitionManager {
 		// We found a good start point, now find the end point
 		// Set a max value and decrease from there
 		result.endBlockNumber = Long.MAX_VALUE;
-		BlockRange pBlock = processing.ceiling(result);
+		Partition pBlock = processing.ceiling(result);
 		if (pBlock != null && result.endBlockNumber > pBlock.startBlockNumber) {
 			result.endBlockNumber = pBlock.startBlockNumber;
 		}
-		BlockRange cBlock = cached.ceiling(result);
+		Partition cBlock = cached.ceiling(result);
 		if (cBlock != null && result.endBlockNumber > cBlock.startBlockNumber) {
 			result.endBlockNumber = cBlock.startBlockNumber;
 		}
@@ -110,7 +110,7 @@ public class PartitionManager {
 		if (result.startBlockNumber >= result.endBlockNumber) {
 			throw new RuntimeException("Something went horribly wrong with the algorithm(probably a bug)");
 		}
-		result.setStatus(BlockRange.Status.PROCESSING);
+		result.setStatus(Partition.Status.PROCESSING);
 		processing.add(result);
 		return result;
 	}
@@ -118,9 +118,9 @@ public class PartitionManager {
 	/*
 	 * Notify Complete, tells the partition manager that a block is complete
 	 */
-	public void notifyComplete(BlockRange b) {
+	public void notifyComplete(Partition b) {
 		if (processing.contains(b)) {
-			processing.ceiling(b).setStatus(BlockRange.Status.COMPLETE);
+			processing.ceiling(b).setStatus(Partition.Status.COMPLETE);
 		} else {
 			throw new RuntimeException("Trying to complete block that was not requested");
 		}
@@ -130,7 +130,7 @@ public class PartitionManager {
 	 * Generally caused by a client dcing without notice
 	 */
 
-	public void notifyFailure(BlockRange b) {
+	public void notifyFailure(Partition b) {
 		if (processing.contains(b)) {
 			processing.remove(b);
 		}
@@ -146,20 +146,20 @@ public class PartitionManager {
 	 * Note: Almost a duplicate of requestPartition
 	 */
 
-	public BlockRange requestCache(int size) {
+	public Partition requestCache(int size) {
 		int stringLength = maxStringLength;
-		BlockRange result = new BlockRange(stringLength, 0, 0);
+		Partition result = new Partition(stringLength, 0, 0);
 		long numberOfBlocks = PlaintextSpace.getNumberOfBlocks(alphabet, nextAvailable.stringLength);
 		while (true) {
 			boolean blockIsGood = true;
 			// First check for caching blocks
-			BlockRange c1Block = caching.ceiling(result);
+			Partition c1Block = caching.ceiling(result);
 			if (c1Block != null && c1Block.startBlockNumber == result.startBlockNumber) {
 				result.startBlockNumber = c1Block.endBlockNumber;
 				blockIsGood = false;
 			}
 			// Now check for cached blocks
-			BlockRange c2Block = cached.ceiling(result);
+			Partition c2Block = cached.ceiling(result);
 			if (c2Block != null && c2Block.startBlockNumber == result.startBlockNumber) {
 				result.startBlockNumber = c2Block.endBlockNumber;
 				blockIsGood = false;
@@ -177,11 +177,11 @@ public class PartitionManager {
 		// We found a good start point, now find the end point
 		// Set a max value and decrease from there
 		result.endBlockNumber = Long.MAX_VALUE;
-		BlockRange c1Block = caching.ceiling(result);
+		Partition c1Block = caching.ceiling(result);
 		if (c1Block != null && result.endBlockNumber > c1Block.startBlockNumber) {
 			result.endBlockNumber = c1Block.startBlockNumber;
 		}
-		BlockRange c2Block = cached.ceiling(result);
+		Partition c2Block = cached.ceiling(result);
 		if (c2Block != null && result.endBlockNumber > c2Block.startBlockNumber) {
 			result.endBlockNumber = c2Block.startBlockNumber;
 		}
@@ -196,7 +196,7 @@ public class PartitionManager {
 		if (result.startBlockNumber >= result.endBlockNumber) {
 			throw new RuntimeException("Something went horribly wrong with the algorithm(probably a bug)");
 		}
-		result.setStatus(BlockRange.Status.CACHING);
+		result.setStatus(Partition.Status.CACHING);
 		caching.add(result);
 		return result;
 	}
@@ -206,12 +206,12 @@ public class PartitionManager {
 	 *
 	 */
 
-	public void notifyCache(BlockRange b) {
+	public void notifyCache(Partition b) {
 		if (caching.contains(b)) {
 			caching.remove(b);
 		}
 		if (!cached.contains(b)) {
-			b.setStatus(BlockRange.Status.CACHED);
+			b.setStatus(Partition.Status.CACHED);
 			cached.add(b);
 		}
 		// A cache may be building as a block is being brute forced
@@ -223,22 +223,22 @@ public class PartitionManager {
 	 * longer being cached
 	 */
 
-	public void releaseCache(BlockRange b) {
+	public void releaseCache(Partition b) {
 		cached.remove(b);
 	}
 	/*
 	 * For testing purposes only
 	 */
 
-	public TreeSet<BlockRange> getCached() {
+	public TreeSet<Partition> getCached() {
 		return cached;
 	}
 
-	public TreeSet<BlockRange> getCaching() {
+	public TreeSet<Partition> getCaching() {
 		return caching;
 	}
 
-	public TreeSet<BlockRange> getProcessing() {
+	public TreeSet<Partition> getProcessing() {
 		return processing;
 	}
 }
