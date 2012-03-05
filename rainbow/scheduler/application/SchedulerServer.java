@@ -10,6 +10,7 @@ import rainbow.scheduler.partition.Partition;
 import rainbow.scheduler.partition.PartitionManager;
 import rainbowpc.Message;
 import rainbowpc.controller.messages.NewQuery;
+import rainbowpc.controller.messages.StopQuery;
 import rainbowpc.controller.messages.WorkBlockSetup;
 import rainbowpc.scheduler.SchedulerProtocol;
 import rainbowpc.scheduler.SchedulerProtocolet;
@@ -24,9 +25,11 @@ public class SchedulerServer extends Thread {
 	String alphabet;
 	ArrayList<SchedulerProtocolet> controllers = new ArrayList<>();
 
+	public static int WORKSIZE = 2;
+	
 	public SchedulerServer() {
 		alphabet = AlphabetGenerator.generateAlphabet(AlphabetGenerator.Types.LOWER_CASE);
-		pm = new PartitionManager(alphabet, 4);
+		pm = new PartitionManager(alphabet, 6);
 		try {
 			executor = Executors.newSingleThreadExecutor();
 			protocol = new SchedulerProtocol();
@@ -83,8 +86,15 @@ public class SchedulerServer extends Thread {
 	public void newQuery(String query) {
 		this.query = query;
 		broadcast(new NewQuery(query, "md5"));
-		Partition p = pm.requestPartition(10);
-		broadcast(new WorkBlockSetup(p.stringLength, p.startBlockNumber, p.endBlockNumber));
+		pm.reset();
+		for (SchedulerProtocolet prot : controllers) {
+			Partition p = pm.requestPartition(WORKSIZE);
+			try {
+				prot.sendMessage(new WorkBlockSetup(p.stringLength, p.startBlockNumber, p.endBlockNumber));
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 
 	public void start() {
@@ -101,15 +111,32 @@ public class SchedulerServer extends Thread {
 					case CacheReady.LABEL:
 					case CacheRelease.LABEL:
 					case CacheRequest.LABEL:
-					case QueryFound.LABEL:
 						System.out.println("Got message " + message.getMethod());
+					case QueryFound.LABEL:
+						System.out.println("Query was successfuly, plaintext found = " + ((QueryFound) message).getPlaintext());
+						query = null;
+						broadcast(new StopQuery(query, "md5"));
 						break;
 					case NewControllerMessage.LABEL:
 						System.out.println("There is a new controller " + message.getID());
 						controllers.add(message.getSchedulerProtocolet());
 						break;
 					case WorkBlockComplete.LABEL:
-						System.out.println("Work block is complete, telling remote to shutdown");
+						if (query == null) {
+							break;
+						}
+						System.out.println("Work block is complete, sending more work");
+						Partition p = pm.requestPartition(WORKSIZE);
+						if (p == null) {
+							System.out.println("Plaintext space exaused");
+							break;
+						}
+						try {
+							message.getSchedulerProtocolet().sendMessage(
+									new WorkBlockSetup(p.stringLength, p.startBlockNumber, p.endBlockNumber));
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
 						break;
 					default:
 						System.out.println("Unexpected message " + message);

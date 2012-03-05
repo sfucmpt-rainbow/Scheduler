@@ -68,7 +68,8 @@ public class PlaintextSpace {
 		return getNumberOfBlocks(alphabet, textLength);
 	}
 	/*
-	 * Gets a text value for a certain index
+	 * Gets a text value for a certain index, returns null if we have exceeded
+	 * all the valid indices for this range
 	 */
 
 	public String getText(int blockIndex) {
@@ -82,6 +83,9 @@ public class PlaintextSpace {
 			int offset = (int) (index % alphabetLength);
 			characterValues[textLength - 1 - i] = alphabet.charAt(offset);
 			index /= alphabetLength;
+		}
+		if(index > 0){
+			return null;
 		}
 		return new String(characterValues);
 	}

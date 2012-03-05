@@ -1,12 +1,12 @@
 package rainbow.scheduler.application;
 
-import rainbowpc.controller.messages.ControllerBootstrapMessage;
-import rainbowpc.Message;
-import rainbowpc.controller.*;
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import rainbowpc.Message;
+import rainbowpc.controller.ControllerProtocol;
 import rainbowpc.controller.messages.*;
+import rainbowpc.scheduler.messages.QueryFound;
 import rainbowpc.scheduler.messages.WorkBlockComplete;
 
 public class BruteForceController extends Thread {
@@ -15,6 +15,7 @@ public class BruteForceController extends Thread {
 	ControllerProtocol protocol;
 	NewQuery query;
 	BruteForcer current;
+
 	public BruteForceController() {
 		executor = Executors.newSingleThreadExecutor();
 		try {
@@ -42,11 +43,13 @@ public class BruteForceController extends Thread {
 					case CacheRequestResponse.LABEL:
 						break;
 					case NewQuery.LABEL:
-						query = (NewQuery)message;
+						query = (NewQuery) message;
 						System.out.println("A new query has been recieved " + query.getQuery());
 						break;
 					case StopQuery.LABEL:
 						System.out.println("Recieved message " + message.getMethod());
+						current.interrupt();
+						query = null;
 						break;
 					case ControllerBootstrapMessage.LABEL:
 						System.out.println("Bootstrap message found!");
@@ -69,10 +72,32 @@ public class BruteForceController extends Thread {
 			}
 		}
 	}
-	public void bruteForce(WorkBlockSetup block){
-		current = new BruteForcer(query, block);
+	BruteForceEventListener listener = new BruteForceEventListener() {
+
+		@Override
+		public void matchFound(String match) {
+			try {
+				protocol.sendMessage(new QueryFound(protocol.getId(), query, match));
+			} catch (IOException e) {
+				e.printStackTrace();
+			}		
+		}
+
+		@Override
+		public void workBlockComplete(WorkBlockSetup b) {
+			try {
+				protocol.sendMessage(new WorkBlockComplete(protocol.getId(), b));
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+	};
+
+	public void bruteForce(WorkBlockSetup block) {
+		current = new BruteForcer(query, block, listener);
 		current.start();
 	}
+
 	@Override
 	public void interrupt() {
 		super.interrupt();
