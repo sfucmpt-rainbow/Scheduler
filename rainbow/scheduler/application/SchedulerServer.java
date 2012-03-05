@@ -84,6 +84,10 @@ public class SchedulerServer extends Thread {
 	}
 
 	public void newQuery(String query) {
+		if(!query.matches("^[0-9a-f]{1,32}$")){
+			System.out.println("Error, invalid query");
+			return;
+		}
 		this.query = query;
 		broadcast(new NewQuery(query, "md5"));
 		pm.reset();
