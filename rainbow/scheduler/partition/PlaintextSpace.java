@@ -1,7 +1,5 @@
 package rainbow.scheduler.partition;
 
-
-
 /*
  * Methods to numerically index the plaintext space
  *
@@ -14,20 +12,20 @@ package rainbow.scheduler.partition;
  *
  * A length represents the space that the block is in, i.e. length = 2 gives
  * aa,ab,ac,ad ...
- * 
- * Warning: This class will not work if there are more than 2^63 plaintexts since that will overflow a long
- * i.e. upper-lower-alphanumeric length 11 is enough to overflow
  *
- * 
- * TODO:
- *	  -Implement an iterator, will probably speed up the iteration if we reuse
- *	  the same character array and only reqire an increment and a check
- * 
- *	  -Check to make sure we haven't past a block
- *	  Need to check both to make sure blockIndex < BLOCK_SIZE and that if its
- *	  the last block then we should check that limit also
+ * Warning: This class will not work if there are more than 2^63 plaintexts
+ * since that will overflow a long i.e. upper-lower-alphanumeric length 11 is
+ * enough to overflow
+ *
+ *
+ * TODO: -Implement an iterator, will probably speed up the iteration if we
+ * reuse the same character array and only reqire an increment and a check
+ *
+ * -Check to make sure we haven't past a block Need to check both to make sure
+ * blockIndex < BLOCK_SIZE and that if its the last block then we should check
+ * that limit also
  */
-class PlaintextSpace {
+public class PlaintextSpace {
 
 	public static final int BLOCK_SIZE = 100000000; // 100 million
 
@@ -50,10 +48,10 @@ class PlaintextSpace {
 	}
 	String alphabet;
 	int alphabetLength;
-	int blockNumber;
+	long blockNumber;
 	int textLength;
 
-	public PlaintextSpace(String alphabet, int blockNumber, int textLength) {
+	public PlaintextSpace(String alphabet, long blockNumber, int textLength) {
 		this.alphabet = alphabet;
 		this.alphabetLength = alphabet.length();
 		this.blockNumber = blockNumber;
@@ -70,20 +68,24 @@ class PlaintextSpace {
 		return getNumberOfBlocks(alphabet, textLength);
 	}
 	/*
-	 * Gets a text value for a certain index
+	 * Gets a text value for a certain index, returns null if we have exceeded
+	 * all the valid indices for this range
 	 */
 
 	public String getText(int blockIndex) {
 		char[] characterValues = new char[textLength];
-		/* 
-		 * Calculate the index of this text
-		 * Make sure one value is casted to long so we don't overflow int
+		/*
+		 * Calculate the index of this text Make sure one value is casted to
+		 * long so we don't overflow int
 		 */
-		long index = (long)blockNumber * BLOCK_SIZE + blockIndex;
+		long index = (long) blockNumber * BLOCK_SIZE + blockIndex;
 		for (int i = 0; i < textLength; i++) {
 			int offset = (int) (index % alphabetLength);
 			characterValues[textLength - 1 - i] = alphabet.charAt(offset);
 			index /= alphabetLength;
+		}
+		if(index > 0){
+			return null;
 		}
 		return new String(characterValues);
 	}
@@ -114,7 +116,7 @@ class PlaintextSpace {
 		// Since its only numbers should just be block_number * block_size
 		// i.e. 3.2 billion with padded 0's
 		if (!ps1.getText(0).equals("003200000000")) {
-			throw new RuntimeException(String.format("Got %s and expected %s",ps1.getText(0),"003200000000"));
+			throw new RuntimeException(String.format("Got %s and expected %s", ps1.getText(0), "003200000000"));
 		}
 		// All numbers from 000,000,000 to 999,999,999 = 1b combinations
 		// Given blocks of 100m there should be 10 blocks
