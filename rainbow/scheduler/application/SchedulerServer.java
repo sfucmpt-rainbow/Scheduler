@@ -24,12 +24,13 @@ public class SchedulerServer extends Thread {
 	PartitionManager pm;
 	String alphabet;
 	ArrayList<SchedulerProtocolet> controllers = new ArrayList<>();
-
+	MessageHandler messageHandler;
 	public static int WORKSIZE = 2;
-	
+
 	public SchedulerServer() {
 		alphabet = AlphabetGenerator.generateAlphabet(AlphabetGenerator.Types.LOWER_CASE);
 		pm = new PartitionManager(alphabet, 6);
+		messageHandler = MessageHandler.createMessageAction(this);
 		try {
 			executor = Executors.newSingleThreadExecutor();
 			protocol = new SchedulerProtocol();
@@ -84,7 +85,7 @@ public class SchedulerServer extends Thread {
 	}
 
 	public void newQuery(String query) {
-		if(!query.matches("^[0-9a-f]{1,32}$")){
+		if (!query.matches("^[0-9a-f]{1,32}$")) {
 			System.out.println("Error, invalid query");
 			return;
 		}
@@ -110,42 +111,8 @@ public class SchedulerServer extends Thread {
 	public void run() {
 		while (true) {
 			try {
-				SchedulerMessage message = (SchedulerMessage) protocol.getMessage();
-				switch (message.getMethod()) {
-					case CacheReady.LABEL:
-					case CacheRelease.LABEL:
-					case CacheRequest.LABEL:
-						System.out.println("Got message " + message.getMethod());
-					case QueryFound.LABEL:
-						System.out.println("Query was successfuly, plaintext found = " + ((QueryFound) message).getPlaintext());
-						query = null;
-						broadcast(new StopQuery(query, "md5"));
-						break;
-					case NewControllerMessage.LABEL:
-						System.out.println("There is a new controller " + message.getID());
-						controllers.add(message.getSchedulerProtocolet());
-						break;
-					case WorkBlockComplete.LABEL:
-						if (query == null) {
-							break;
-						}
-						System.out.println("Work block is complete, sending more work");
-						Partition p = pm.requestPartition(WORKSIZE);
-						if (p == null) {
-							System.out.println("Plaintext space exaused");
-							break;
-						}
-						try {
-							message.getSchedulerProtocolet().sendMessage(
-									new WorkBlockSetup(p.stringLength, p.startBlockNumber, p.endBlockNumber));
-						} catch (Exception e) {
-							e.printStackTrace();
-						}
-						break;
-					default:
-						System.out.println("Unexpected message " + message);
-						break;
-				}
+				Message message = protocol.getMessage();
+				messageHandler.execute(message);
 			} catch (InterruptedException ie) {
 				Thread.currentThread().interrupt();
 				System.out.println("Thread was interrupted, exiting");
