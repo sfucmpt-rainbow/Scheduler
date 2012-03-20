@@ -2,7 +2,7 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package rainbow.scheduler.application;
+package rainbow.scheduler.application.depreciated;
 
 import java.math.BigInteger;
 import rainbow.scheduler.partition.AlphabetGenerator;

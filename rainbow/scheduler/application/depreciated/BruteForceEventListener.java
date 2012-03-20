@@ -1,5 +1,5 @@
 
-package rainbow.scheduler.application;
+package rainbow.scheduler.application.depreciated;
 
 import rainbowpc.controller.messages.WorkBlockSetup;
 
