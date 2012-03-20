@@ -20,16 +20,16 @@ public class SchedulerServer extends Thread {
 
 	Executor executor;
 	SchedulerProtocol protocol;
-	String query = null;
+	HashQuery currentQuery;
 	PartitionManager pm;
 	String alphabet;
-	ArrayList<SchedulerProtocolet> controllers = new ArrayList<>();
+	ArrayList<Controller> controllers = new ArrayList<>();
 	MessageHandler messageHandler;
 	public static int WORKSIZE = 2;
 
 	public SchedulerServer() {
 		alphabet = AlphabetGenerator.generateAlphabet(AlphabetGenerator.Types.LOWER_CASE);
-		pm = new PartitionManager(alphabet, 6);
+		pm = new PartitionManager(alphabet, 8);
 		messageHandler = MessageHandler.createMessageAction(this);
 		try {
 			executor = Executors.newSingleThreadExecutor();
@@ -46,9 +46,9 @@ public class SchedulerServer extends Thread {
 	}
 
 	public void broadcast(Message message) {
-		for (SchedulerProtocolet prot : controllers) {
+		for (Controller prot : controllers) {
 			try {
-				prot.sendMessage(message);
+				prot.getProtocol().sendMessage(message);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -89,13 +89,14 @@ public class SchedulerServer extends Thread {
 			System.out.println("Error, invalid query");
 			return;
 		}
-		this.query = query;
-		broadcast(new NewQuery(query, "md5"));
+		currentQuery = new HashQuery(query, "md5");
+		broadcast(SchedulerMessageFactory.createNewQuery(currentQuery));
 		pm.reset();
-		for (SchedulerProtocolet prot : controllers) {
-			Partition p = pm.requestPartition(WORKSIZE);
+		for (Controller controller : controllers) {
+			Partition p = pm.requestPartition(controller.getCores() * 2);
 			try {
-				prot.sendMessage(new WorkBlockSetup(p.stringLength, p.startBlockNumber, p.endBlockNumber));
+				controller.getProtocol().sendMessage(
+						SchedulerMessageFactory.createWorkBlock(p, currentQuery));
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -120,40 +121,5 @@ public class SchedulerServer extends Thread {
 			}
 		}
 		System.exit(0);
-	}
-
-	public static void main(String[] args) {
-		SchedulerServer ss = new SchedulerServer();
-		ss.start();
-		Scanner s = new Scanner(System.in);
-		boolean done = false;
-		try {
-			do {
-				String line = s.nextLine();
-				String[] params = line.split(" ");
-				switch (params[0]) {
-					case "quit":
-						done = true;
-						break;
-					case "query":
-						ss.newQuery(params[1]);
-						break;
-					case "test1":
-						// md5 of "z"
-						ss.newQuery("fbade9e36a3f36d3d676c1b808451dd7");
-						break;
-					case "test2":
-						// md5 of "test"
-						ss.newQuery("098f6bcd4621d373cade4e832627b4f6");
-						break;
-					default:
-						System.out.println("Unknown command " + params[0]);
-						break;
-				}
-			} while (!done);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		ss.callInterrupt();
 	}
 }

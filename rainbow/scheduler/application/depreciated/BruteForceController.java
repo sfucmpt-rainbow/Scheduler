@@ -1,4 +1,4 @@
-package rainbow.scheduler.application;
+package rainbow.scheduler.application.depreciated;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
@@ -80,13 +80,13 @@ public class BruteForceController extends Thread {
 				protocol.sendMessage(new QueryFound(protocol.getId(), query, match));
 			} catch (IOException e) {
 				e.printStackTrace();
-			}		
+			}
 		}
 
 		@Override
 		public void workBlockComplete(WorkBlockSetup b) {
 			try {
-				protocol.sendMessage(new WorkBlockComplete(protocol.getId(), b));
+				protocol.sendMessage(new WorkBlockComplete(protocol.getId(), 0, b));
 			} catch (IOException e) {
 				e.printStackTrace();
 			}

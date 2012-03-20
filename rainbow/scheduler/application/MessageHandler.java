@@ -1,9 +1,8 @@
 package rainbow.scheduler.application;
 
-import java.util.Hashtable;
+import java.util.HashMap;
 import rainbow.scheduler.partition.Partition;
 import rainbowpc.Message;
-import rainbowpc.controller.messages.StopQuery;
 import rainbowpc.controller.messages.WorkBlockSetup;
 import rainbowpc.scheduler.messages.*;
 import rainbowpc.scheduler.messages.CacheReady;
@@ -24,11 +23,11 @@ public class MessageHandler {
 		return hander;
 	}
 	private SchedulerServer server;
-	private Hashtable<String, Action> actions;
+	private HashMap<String, Action> actions;
 
 	private MessageHandler(SchedulerServer server) {
 		this.server = server;
-		actions = new Hashtable<String, Action>();
+		actions = new HashMap<String, Action>();
 		constructActionTable();
 	}
 
@@ -59,8 +58,8 @@ public class MessageHandler {
 			@Override
 			public void execute(Message message) {
 				System.out.println("Query was successfuly, plaintext found = " + ((QueryFound) message).getPlaintext());
-				server.query = null;
-				server.broadcast(new StopQuery(server.query, "md5"));
+				server.broadcast(SchedulerMessageFactory.createStopQuery(server.currentQuery));
+				server.currentQuery = null;
 			}
 		});
 		actions.put(NewControllerMessage.LABEL, new Action() {
@@ -69,7 +68,7 @@ public class MessageHandler {
 			public void execute(Message message) {
 				NewControllerMessage newControllerMessage = (NewControllerMessage) message;
 				System.out.println("There is a new controller " + newControllerMessage.getID());
-				server.controllers.add(newControllerMessage.getSchedulerProtocolet());
+				server.controllers.add(new Controller(newControllerMessage.getSchedulerProtocolet()));
 			}
 		});
 		actions.put(WorkBlockComplete.LABEL, new Action() {
@@ -77,7 +76,7 @@ public class MessageHandler {
 			@Override
 			public void execute(Message message) {
 				WorkBlockComplete workBlockCompleteMessage = (WorkBlockComplete) message;
-				if (server.query == null) {
+				if (server.currentQuery == null) {
 					return;
 				}
 				System.out.println("Work block is complete, sending more work");
@@ -88,7 +87,7 @@ public class MessageHandler {
 				}
 				try {
 					workBlockCompleteMessage.getSchedulerProtocolet().sendMessage(
-							new WorkBlockSetup(p.stringLength, p.startBlockNumber, p.endBlockNumber));
+							SchedulerMessageFactory.createWorkBlock(p, server.currentQuery));
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
