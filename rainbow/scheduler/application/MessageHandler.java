@@ -1,9 +1,10 @@
 package rainbow.scheduler.application;
 
 import java.util.HashMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import rainbow.scheduler.partition.Partition;
 import rainbowpc.Message;
-import rainbowpc.controller.messages.WorkBlockSetup;
 import rainbowpc.scheduler.messages.*;
 import rainbowpc.scheduler.messages.CacheReady;
 
@@ -36,21 +37,21 @@ public class MessageHandler {
 
 			@Override
 			public void execute(Message message) {
-				System.out.println("Got message " + message.getMethod());
+				Logger.getGlobal().log(Level.INFO, "Got message " + message.getMethod());
 			}
 		});
 		actions.put(CacheRelease.LABEL, new Action() {
 
 			@Override
 			public void execute(Message message) {
-				System.out.println("Got message " + message.getMethod());
+				Logger.getGlobal().log(Level.INFO, "Got message " + message.getMethod());
 			}
 		});
 		actions.put(CacheRequest.LABEL, new Action() {
 
 			@Override
 			public void execute(Message message) {
-				System.out.println("Got message " + message.getMethod());
+				Logger.getGlobal().log(Level.INFO, "Got message " + message.getMethod());
 			}
 		});
 		actions.put(QueryFound.LABEL, new Action() {
@@ -67,7 +68,7 @@ public class MessageHandler {
 			@Override
 			public void execute(Message message) {
 				NewControllerMessage newControllerMessage = (NewControllerMessage) message;
-				System.out.println("There is a new controller " + newControllerMessage.getID());
+				Logger.getGlobal().log(Level.INFO, "There is a new controller " + newControllerMessage.getID());
 				server.controllers.add(new Controller(newControllerMessage.getSchedulerProtocolet()));
 			}
 		});
@@ -79,10 +80,10 @@ public class MessageHandler {
 				if (server.currentQuery == null) {
 					return;
 				}
-				System.out.println("Work block is complete, sending more work");
+				Logger.getGlobal().log(Level.INFO, "Work block is complete, sending more work");
 				Partition p = server.pm.requestPartition(server.WORKSIZE);
 				if (p == null) {
-					System.out.println("Plaintext space exaused");
+					Logger.getGlobal().log(Level.INFO, "Plaintext space exaused");
 					return;
 				}
 				try {

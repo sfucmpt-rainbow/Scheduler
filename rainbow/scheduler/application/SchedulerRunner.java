@@ -36,6 +36,14 @@ public class SchedulerRunner {
 						// md5 of "test"
 						ss.newQuery("098f6bcd4621d373cade4e832627b4f6");
 						break;
+					case "test3":
+						// md5 of "asdfgh"
+						ss.newQuery("a152e841783914146e4bcd4f39100686");
+						break;
+					case "test4":
+						// md5 of "asdfgh"
+						ss.newQuery("c83b2d5bb1fb4d93d9d064593ed6eea2");
+						break;
 					default:
 						System.out.println("Unknown command " + params[0]);
 						break;

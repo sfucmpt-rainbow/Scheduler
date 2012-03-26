@@ -2,19 +2,13 @@ package rainbow.scheduler.application;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Scanner;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import rainbow.scheduler.partition.AlphabetGenerator;
 import rainbow.scheduler.partition.Partition;
 import rainbow.scheduler.partition.PartitionManager;
 import rainbowpc.Message;
-import rainbowpc.controller.messages.NewQuery;
-import rainbowpc.controller.messages.StopQuery;
-import rainbowpc.controller.messages.WorkBlockSetup;
 import rainbowpc.scheduler.SchedulerProtocol;
-import rainbowpc.scheduler.SchedulerProtocolet;
-import rainbowpc.scheduler.messages.*;
 
 public class SchedulerServer extends Thread {
 
@@ -93,7 +87,7 @@ public class SchedulerServer extends Thread {
 		broadcast(SchedulerMessageFactory.createNewQuery(currentQuery));
 		pm.reset();
 		for (Controller controller : controllers) {
-			Partition p = pm.requestPartition(controller.getCores() * 2);
+			Partition p = pm.requestPartition(WORKSIZE);
 			try {
 				controller.getProtocol().sendMessage(
 						SchedulerMessageFactory.createWorkBlock(p, currentQuery));

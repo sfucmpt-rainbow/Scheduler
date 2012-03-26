@@ -13,26 +13,18 @@ import rainbowpc.scheduler.messages.WorkBlockComplete;
  */
 public class Controller {
 
-	private int cores;
 	private SchedulerProtocolet protocol;
 	private ArrayList<Partition> assignedPartitions;
 	private HashQuery currentQuery;
 
 	public Controller(SchedulerProtocolet protocol) {
+		this.protocol = protocol;
 		assignedPartitions = new ArrayList<Partition>();
 	}
 
 	/*
 	 * Accessor methods
 	 */
-	public int getCores() {
-		return cores;
-	}
-
-	public void setCores(int cores) {
-		this.cores = cores;
-	}
-
 	public SchedulerProtocolet getProtocol() {
 		return protocol;
 	}
@@ -63,7 +55,8 @@ public class Controller {
 		assignedPartitions.add(p);
 		protocol.sendMessage(SchedulerMessageFactory.createWorkBlock(p, currentQuery));
 	}
-	public void removePartition(WorkBlockComplete message){
+
+	public void removePartition(WorkBlockComplete message) {
 		assignedPartitions.remove(SchedulerMessageFactory.createPartition(message));
 	}
 }
