@@ -3,9 +3,7 @@ package rainbow.scheduler.application;
 import java.io.IOException;
 import java.util.ArrayList;
 import rainbow.scheduler.partition.Partition;
-import rainbowpc.controller.messages.WorkBlockSetup;
 import rainbowpc.scheduler.SchedulerProtocolet;
-import rainbowpc.scheduler.messages.WorkBlockComplete;
 
 /**
  *
@@ -33,6 +31,15 @@ public class Controller {
 		return assignedPartitions;
 	}
 
+	public Partition findPartition(long startBlock, long endBlock, int stringLength) {
+		for (Partition p : assignedPartitions) {
+			if (p.startBlockNumber == startBlock && p.endBlockNumber == endBlock && p.stringLength == stringLength) {
+				return p;
+			}
+		}
+		return null;
+	}
+
 	public HashQuery getCurrentQuery() {
 		return currentQuery;
 	}
@@ -56,7 +63,7 @@ public class Controller {
 		protocol.sendMessage(SchedulerMessageFactory.createWorkBlock(p, currentQuery));
 	}
 
-	public void removePartition(WorkBlockComplete message) {
-		assignedPartitions.remove(SchedulerMessageFactory.createPartition(message));
+	public void removePartition(Partition partition) {
+		assignedPartitions.remove(partition);
 	}
 }

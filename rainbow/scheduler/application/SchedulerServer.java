@@ -9,6 +9,7 @@ import rainbow.scheduler.partition.Partition;
 import rainbow.scheduler.partition.PartitionManager;
 import rainbowpc.Message;
 import rainbowpc.scheduler.SchedulerProtocol;
+import rainbowpc.scheduler.SchedulerProtocolet;
 
 public class SchedulerServer extends Thread {
 
@@ -49,6 +50,15 @@ public class SchedulerServer extends Thread {
 		}
 	}
 
+	public Controller getController(SchedulerProtocolet protocol) {
+		for (Controller controller : controllers) {
+			if (controller.getProtocol() == protocol) {
+				return controller;
+			}
+		}
+		return null;
+	}
+
 	public void buildHook() {
 		Runtime.getRuntime().addShutdownHook(new Thread() {
 
@@ -84,13 +94,12 @@ public class SchedulerServer extends Thread {
 			return;
 		}
 		currentQuery = new HashQuery(query, "md5");
-		broadcast(SchedulerMessageFactory.createNewQuery(currentQuery));
 		pm.reset();
 		for (Controller controller : controllers) {
-			Partition p = pm.requestPartition(WORKSIZE);
 			try {
-				controller.getProtocol().sendMessage(
-						SchedulerMessageFactory.createWorkBlock(p, currentQuery));
+				controller.sendQuery(currentQuery);
+				Partition p = pm.requestPartition(WORKSIZE);
+				controller.assignPartition(p);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
