@@ -18,7 +18,7 @@ public class SchedulerServer extends Thread {
 	HashQuery currentQuery;
 	PartitionManager pm;
 	String alphabet;
-	ArrayList<Controller> controllers = new ArrayList<>();
+	ArrayList<Controller> controllers = new ArrayList<Controller>();
 	MessageHandler messageHandler;
 	public static int WORKSIZE = 2;
 

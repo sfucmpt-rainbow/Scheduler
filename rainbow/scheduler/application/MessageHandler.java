@@ -38,21 +38,21 @@ public class MessageHandler {
 
 			@Override
 			public void execute(Message message) {
-				Logger.getGlobal().log(Level.INFO, "Got message " + message.getMethod());
+				Logger.getAnonymousLogger().log(Level.INFO, "Got message " + message.getMethod());
 			}
 		});
 		actions.put(CacheRelease.LABEL, new Action() {
 
 			@Override
 			public void execute(Message message) {
-				Logger.getGlobal().log(Level.INFO, "Got message " + message.getMethod());
+				Logger.getAnonymousLogger().log(Level.INFO, "Got message " + message.getMethod());
 			}
 		});
 		actions.put(CacheRequest.LABEL, new Action() {
 
 			@Override
 			public void execute(Message message) {
-				Logger.getGlobal().log(Level.INFO, "Got message " + message.getMethod());
+				Logger.getAnonymousLogger().log(Level.INFO, "Got message " + message.getMethod());
 			}
 		});
 		actions.put(QueryFound.LABEL, new Action() {
@@ -78,14 +78,14 @@ public class MessageHandler {
 				Controller controller = new Controller(newControllerMessage.getSchedulerProtocolet());
 				server.controllers.add(controller);
 
-				Logger.getGlobal().log(Level.INFO, "There is a new controller " + newControllerMessage.getID());
+				Logger.getAnonymousLogger().log(Level.INFO, "There is a new controller " + newControllerMessage.getID());
 				if (server.currentQuery != null) {
 					try {
 						controller.sendQuery(server.currentQuery);
 						Partition newPartition = server.pm.requestPartition(server.WORKSIZE);
 						controller.assignPartition(newPartition);
 					} catch (Exception e) {
-						Logger.getGlobal().severe("Could not send new controller the current query or work block\n" + e.getMessage());
+						Logger.getAnonymousLogger().severe("Could not send new controller the current query or work block\n" + e.getMessage());
 					}
 				}
 			}
@@ -103,10 +103,10 @@ public class MessageHandler {
 				if (server.currentQuery == null) {
 					return;
 				}
-				Logger.getGlobal().log(Level.INFO, "Work block is complete, sending more work");
+				Logger.getAnonymousLogger().log(Level.INFO, "Work block is complete, sending more work");
 				Partition newPartition = server.pm.requestPartition(server.WORKSIZE);
 				if (newPartition == null) {
-					Logger.getGlobal().log(Level.INFO, "Plaintext space exaused");
+					Logger.getAnonymousLogger().log(Level.INFO, "Plaintext space exaused");
 					return;
 				}
 				try {
@@ -124,6 +124,7 @@ public class MessageHandler {
 				Controller controller = server.getController(cdmessage.getSchedulerProtocolet());
 
 				for (Partition p : controller.getAssignedPartitions()) {
+					System.out.println("Notify failure" + p.toString());
 					server.pm.notifyFailure(p);
 				}
 				server.controllers.remove(controller);
