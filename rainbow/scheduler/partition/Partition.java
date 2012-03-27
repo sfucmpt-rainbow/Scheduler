@@ -6,25 +6,24 @@ package rainbow.scheduler.partition;
 public class Partition implements Comparable<Partition> {
 
 	public enum Status {
+
 		INCOMPLETE,
 		PROCESSING,
 		CACHING,
 		CACHED,
 		COMPLETE;
 	}
-	
 	public int stringLength;
 	public long startBlockNumber;
 	public long endBlockNumber;
 	//Only used by the scheduler to maintain the blocks current status
 	private Status status = Status.INCOMPLETE;
-	
+
 	/*
-	* Represents a range from startBlockNumber to endBlockNumber
-	* includes startblockNumber but excludes endBlockNumber so that
-	* for(long i=startBlockNumber;i<endBlockNumber;i++)
-	* works as expected
-	*/
+	 * Represents a range from startBlockNumber to endBlockNumber includes
+	 * startblockNumber but excludes endBlockNumber so that for(long
+	 * i=startBlockNumber;i<endBlockNumber;i++) works as expected
+	 */
 	public Partition(int stringLength, long startBlockNumber, long endBlockNumber) {
 		this.stringLength = stringLength;
 		this.startBlockNumber = startBlockNumber;
@@ -41,7 +40,7 @@ public class Partition implements Comparable<Partition> {
 	}
 
 	public void setStatus(Status status) {
-		if(status == Status.INCOMPLETE){
+		if (status == Status.INCOMPLETE) {
 			// Incomplete should never occur
 			// If a block does not exist then it is incomplete
 			throw new RuntimeException("Error, assigning incomplete status");
@@ -52,9 +51,9 @@ public class Partition implements Comparable<Partition> {
 	@Override
 	public int compareTo(Partition o) {
 		if (this.stringLength != o.stringLength) {
-			return Integer.compare(this.stringLength, o.stringLength);
+			return this.stringLength - o.stringLength;
 		} else {
-			return Long.compare(this.startBlockNumber, o.startBlockNumber);
+			return (int) (this.startBlockNumber - o.startBlockNumber);
 		}
 	}
 
@@ -68,7 +67,8 @@ public class Partition implements Comparable<Partition> {
 				&& this.startBlockNumber == other.startBlockNumber
 				&& this.endBlockNumber == other.endBlockNumber;
 	}
-	public boolean startBlockEquals(Partition p){
+
+	public boolean startBlockEquals(Partition p) {
 		return this.stringLength == p.stringLength
 				&& this.startBlockNumber == p.startBlockNumber;
 	}

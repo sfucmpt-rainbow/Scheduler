@@ -3,9 +3,7 @@ package rainbow.scheduler.application;
 import java.io.IOException;
 import java.util.ArrayList;
 import rainbow.scheduler.partition.Partition;
-import rainbowpc.controller.messages.WorkBlockSetup;
 import rainbowpc.scheduler.SchedulerProtocolet;
-import rainbowpc.scheduler.messages.WorkBlockComplete;
 
 /**
  *
@@ -13,32 +11,33 @@ import rainbowpc.scheduler.messages.WorkBlockComplete;
  */
 public class Controller {
 
-	private int cores;
 	private SchedulerProtocolet protocol;
 	private ArrayList<Partition> assignedPartitions;
 	private HashQuery currentQuery;
 
 	public Controller(SchedulerProtocolet protocol) {
+		this.protocol = protocol;
 		assignedPartitions = new ArrayList<Partition>();
 	}
 
 	/*
 	 * Accessor methods
 	 */
-	public int getCores() {
-		return cores;
-	}
-
-	public void setCores(int cores) {
-		this.cores = cores;
-	}
-
 	public SchedulerProtocolet getProtocol() {
 		return protocol;
 	}
 
 	public ArrayList<Partition> getAssignedPartitions() {
 		return assignedPartitions;
+	}
+
+	public Partition findPartition(long startBlock, long endBlock, int stringLength) {
+		for (Partition p : assignedPartitions) {
+			if (p.startBlockNumber == startBlock && p.endBlockNumber == endBlock && p.stringLength == stringLength) {
+				return p;
+			}
+		}
+		return null;
 	}
 
 	public HashQuery getCurrentQuery() {
@@ -63,7 +62,8 @@ public class Controller {
 		assignedPartitions.add(p);
 		protocol.sendMessage(SchedulerMessageFactory.createWorkBlock(p, currentQuery));
 	}
-	public void removePartition(WorkBlockComplete message){
-		assignedPartitions.remove(SchedulerMessageFactory.createPartition(message));
+
+	public void removePartition(Partition partition) {
+		assignedPartitions.remove(partition);
 	}
 }
