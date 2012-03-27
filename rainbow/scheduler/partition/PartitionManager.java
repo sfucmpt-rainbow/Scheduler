@@ -28,9 +28,9 @@ public class PartitionManager {
 	
 	public PartitionManager(String alphabet, int maxStringLength) {
 		this.alphabet = alphabet;
-		processing = new TreeSet<>();
-		cached = new TreeSet<>();
-		caching = new TreeSet<>();
+		processing = new TreeSet<Partition>();
+		cached = new TreeSet<Partition>();
+		caching = new TreeSet<Partition>();
 		this.maxStringLength = maxStringLength;
 		reset();
 	}

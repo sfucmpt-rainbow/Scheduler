@@ -2,19 +2,14 @@ package rainbow.scheduler.application;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Scanner;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import rainbow.scheduler.partition.AlphabetGenerator;
 import rainbow.scheduler.partition.Partition;
 import rainbow.scheduler.partition.PartitionManager;
 import rainbowpc.Message;
-import rainbowpc.controller.messages.NewQuery;
-import rainbowpc.controller.messages.StopQuery;
-import rainbowpc.controller.messages.WorkBlockSetup;
 import rainbowpc.scheduler.SchedulerProtocol;
 import rainbowpc.scheduler.SchedulerProtocolet;
-import rainbowpc.scheduler.messages.*;
 
 public class SchedulerServer extends Thread {
 
@@ -23,7 +18,7 @@ public class SchedulerServer extends Thread {
 	HashQuery currentQuery;
 	PartitionManager pm;
 	String alphabet;
-	ArrayList<Controller> controllers = new ArrayList<>();
+	ArrayList<Controller> controllers = new ArrayList<Controller>();
 	MessageHandler messageHandler;
 	public static int WORKSIZE = 2;
 
@@ -53,6 +48,15 @@ public class SchedulerServer extends Thread {
 				e.printStackTrace();
 			}
 		}
+	}
+
+	public Controller getController(SchedulerProtocolet protocol) {
+		for (Controller controller : controllers) {
+			if (controller.getProtocol() == protocol) {
+				return controller;
+			}
+		}
+		return null;
 	}
 
 	public void buildHook() {
@@ -90,13 +94,12 @@ public class SchedulerServer extends Thread {
 			return;
 		}
 		currentQuery = new HashQuery(query, "md5");
-		broadcast(SchedulerMessageFactory.createNewQuery(currentQuery));
 		pm.reset();
 		for (Controller controller : controllers) {
-			Partition p = pm.requestPartition(controller.getCores() * 2);
 			try {
-				controller.getProtocol().sendMessage(
-						SchedulerMessageFactory.createWorkBlock(p, currentQuery));
+				controller.sendQuery(currentQuery);
+				Partition p = pm.requestPartition(WORKSIZE);
+				controller.assignPartition(p);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
