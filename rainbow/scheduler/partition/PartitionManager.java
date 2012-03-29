@@ -1,6 +1,10 @@
 package rainbow.scheduler.partition;
 
 import java.util.TreeSet;
+import java.util.List;
+import java.util.LinkedList;
+import java.util.Stack;
+import java.math.BigInteger;
 
 /*
  * Manages all the partitions of the plaintext space Use this to request a
@@ -25,6 +29,9 @@ public class PartitionManager {
 	private TreeSet<Partition> caching;
 	// What the largest strings we allow are
 	private int maxStringLength;
+
+
+	//private BigInteger totalKeysDone = new BigInteger(0);
 	
 	public PartitionManager(String alphabet, int maxStringLength) {
 		this.alphabet = alphabet;
@@ -70,6 +77,22 @@ public class PartitionManager {
 		}
 		processing.add(result);
 		return result;
+	}
+
+	public List<Partition> stripedRequestPartitions(int size, int numberOfPartitions) {
+		Stack<Partition> putBack = new Stack<Partition>();
+		List<Partition> assigned = new LinkedList<Partition>();
+		for (int i = 0; i < numberOfPartitions; i++) {
+			assigned.add(requestPartition(size));
+			// hack fix, skip over elements
+			for (int j = 0; j < numberOfPartitions - 1; j++) {
+				putBack.push(requestPartition(size));
+			}
+		}
+		while (!putBack.empty()) {
+			notifyFailure(putBack.pop());	
+		}
+		return assigned;
 	}
 	
 	private Partition findPartitionStartBlock(Partition result, int size) {
@@ -137,10 +160,12 @@ public class PartitionManager {
 	public void notifyComplete(Partition b) {
 		if (processing.contains(b)) {
 			processing.ceiling(b).setStatus(Partition.Status.COMPLETE);
+			//totalKeysDone += processing.ceiling(b).
 		} else {
 			throw new RuntimeException("Trying to complete block that was not requested");
 		}
 	}
+
 	/*
 	 * Notify Failure, tells the partition manager that a block has failed
 	 * Generally caused by a client dcing without notice

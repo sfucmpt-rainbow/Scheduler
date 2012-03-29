@@ -14,7 +14,6 @@ import rainbowpc.scheduler.messages.CacheReady;
  * @author WesleyLuk
  */
 public class MessageHandler {
-
 	abstract class Action {
 
 		public abstract void execute(Message m);
@@ -68,6 +67,7 @@ public class MessageHandler {
 					}
 				}
 				server.currentQuery = null;
+				server.stopWatch();
 			}
 		});
 		actions.put(NewControllerMessage.LABEL, new Action() {
@@ -82,8 +82,10 @@ public class MessageHandler {
 				if (server.currentQuery != null) {
 					try {
 						controller.sendQuery(server.currentQuery);
-						Partition newPartition = server.pm.requestPartition(server.WORKSIZE);
-						controller.assignPartition(newPartition);
+						for (int i = 0; i < server.MESSAGES_BUFFERED; i++) {
+							Partition newPartition = server.pm.requestPartition(server.WORKSIZE);
+							controller.assignPartition(newPartition);
+						}
 					} catch (Exception e) {
 						Logger.getAnonymousLogger().severe("Could not send new controller the current query or work block\n" + e.getMessage());
 					}

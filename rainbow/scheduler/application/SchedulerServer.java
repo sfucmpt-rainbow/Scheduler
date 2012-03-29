@@ -2,6 +2,7 @@ package rainbow.scheduler.application;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import rainbow.scheduler.partition.AlphabetGenerator;
@@ -20,7 +21,10 @@ public class SchedulerServer extends Thread {
 	String alphabet;
 	ArrayList<Controller> controllers = new ArrayList<Controller>();
 	MessageHandler messageHandler;
+	long startTime = System.currentTimeMillis();
+
 	public static int WORKSIZE = 2;
+	public static int MESSAGES_BUFFERED = 3;
 
 	public SchedulerServer() {
 		alphabet = AlphabetGenerator.generateAlphabet(AlphabetGenerator.Types.LOWER_CASE);
@@ -95,15 +99,24 @@ public class SchedulerServer extends Thread {
 		}
 		currentQuery = new HashQuery(query, "md5");
 		pm.reset();
+		startTime = System.currentTimeMillis();
 		for (Controller controller : controllers) {
 			try {
 				controller.sendQuery(currentQuery);
-				Partition p = pm.requestPartition(WORKSIZE);
-				controller.assignPartition(p);
+				List<Partition> assigned = 
+					pm.stripedRequestPartitions(WORKSIZE, MESSAGES_BUFFERED);
+				for (Partition p : assigned) {
+					controller.assignPartition(p);
+				}
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
 		}
+	}
+
+	public void stopWatch() {
+		double seconds = (double)(System.currentTimeMillis() - startTime) / 1000;
+		System.out.println("Query took " + seconds + " seconds to complete");
 	}
 
 	public void start() {
