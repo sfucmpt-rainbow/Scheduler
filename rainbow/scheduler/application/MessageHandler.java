@@ -2,8 +2,10 @@ package rainbow.scheduler.application;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import rainbow.scheduler.application.message.RequestQueryMessage;
 import rainbow.scheduler.partition.Partition;
 import rainbowpc.Message;
 import rainbowpc.scheduler.messages.*;
@@ -139,9 +141,27 @@ public class MessageHandler {
 				server.controllers.remove(controller);
 			}
 		});
-	}
+		actions.put(RequestQueryMessage.LABEL, new Action() {
 
-	;
+			@Override
+			public void execute(Message m) {
+				server.pm.reset();
+				server.startTime = System.currentTimeMillis();
+				for (Controller controller : server.controllers) {
+					try {
+						controller.sendQuery(server.currentQuery);
+						List<Partition> assigned =
+								server.pm.stripedRequestPartitions(server.WORKSIZE, server.MESSAGES_BUFFERED);
+						for (Partition p : assigned) {
+							controller.assignPartition(p);
+						}
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		});
+	}
 
 	public void execute(Message m) {
 		actions.get(m.getMethod()).execute(m);

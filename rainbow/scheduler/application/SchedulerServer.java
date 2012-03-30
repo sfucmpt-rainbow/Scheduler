@@ -2,9 +2,11 @@ package rainbow.scheduler.application;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import rainbow.scheduler.application.message.RequestQueryMessage;
 import rainbow.scheduler.partition.AlphabetGenerator;
 import rainbow.scheduler.partition.Partition;
 import rainbow.scheduler.partition.PartitionManager;
@@ -16,6 +18,7 @@ public class SchedulerServer extends Thread {
 
 	Executor executor;
 	SchedulerProtocol protocol;
+	
 	HashQuery currentQuery;
 	PartitionManager pm;
 	String alphabet;
@@ -98,20 +101,9 @@ public class SchedulerServer extends Thread {
 			return;
 		}
 		currentQuery = new HashQuery(query, "md5");
-		pm.reset();
-		startTime = System.currentTimeMillis();
-		for (Controller controller : controllers) {
-			try {
-				controller.sendQuery(currentQuery);
-				List<Partition> assigned = 
-					pm.stripedRequestPartitions(WORKSIZE, MESSAGES_BUFFERED);
-				for (Partition p : assigned) {
-					controller.assignPartition(p);
-				}
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
+		
+		RequestQueryMessage queryMessage = new RequestQueryMessage(currentQuery);
+		protocol.addMessage(queryMessage);
 	}
 
 	public void stopWatch() {
