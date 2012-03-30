@@ -14,10 +14,12 @@ import rainbowpc.scheduler.messages.CacheReady;
  * @author WesleyLuk
  */
 public class MessageHandler {
+
 	abstract class Action {
 
 		public abstract void execute(Message m);
 	}
+	static Logger logger = Logger.getLogger(MessageHandler.class.getName());
 
 	public static MessageHandler createMessageAction(SchedulerServer server) {
 		MessageHandler hander = new MessageHandler(server);
@@ -37,21 +39,21 @@ public class MessageHandler {
 
 			@Override
 			public void execute(Message message) {
-				Logger.getAnonymousLogger().log(Level.INFO, "Got message " + message.getMethod());
+				logger.log(Level.INFO, "Got message " + message.getMethod());
 			}
 		});
 		actions.put(CacheRelease.LABEL, new Action() {
 
 			@Override
 			public void execute(Message message) {
-				Logger.getAnonymousLogger().log(Level.INFO, "Got message " + message.getMethod());
+				logger.log(Level.INFO, "Got message " + message.getMethod());
 			}
 		});
 		actions.put(CacheRequest.LABEL, new Action() {
 
 			@Override
 			public void execute(Message message) {
-				Logger.getAnonymousLogger().log(Level.INFO, "Got message " + message.getMethod());
+				logger.log(Level.INFO, "Got message " + message.getMethod());
 			}
 		});
 		actions.put(QueryFound.LABEL, new Action() {
@@ -78,16 +80,20 @@ public class MessageHandler {
 				Controller controller = new Controller(newControllerMessage.getSchedulerProtocolet());
 				server.controllers.add(controller);
 
-				Logger.getAnonymousLogger().log(Level.INFO, "There is a new controller " + newControllerMessage.getID());
+				logger.log(Level.INFO, "There is a new controller " + newControllerMessage.getID());
 				if (server.currentQuery != null) {
 					try {
 						controller.sendQuery(server.currentQuery);
 						for (int i = 0; i < server.MESSAGES_BUFFERED; i++) {
 							Partition newPartition = server.pm.requestPartition(server.WORKSIZE);
+							if (newPartition == null) {
+								logger.log(Level.INFO, "Plaintext space exaused");
+								return;
+							}
 							controller.assignPartition(newPartition);
 						}
 					} catch (Exception e) {
-						Logger.getAnonymousLogger().severe("Could not send new controller the current query or work block\n" + e.getMessage());
+						logger.severe("Could not send new controller the current query or work block\n" + e.getMessage());
 					}
 				}
 			}
@@ -99,16 +105,17 @@ public class MessageHandler {
 				WorkBlockComplete workBlockCompleteMessage = (WorkBlockComplete) message;
 				Controller controller = server.getController(workBlockCompleteMessage.getSchedulerProtocolet());
 				Partition partition = controller.findPartition(workBlockCompleteMessage.getStartBlockNumber(), workBlockCompleteMessage.getEndBlockNumber(), workBlockCompleteMessage.getStringLength());
-				server.pm.notifyComplete(partition);
-				controller.removePartition(partition);
-
+				if (partition != null) {
+					server.pm.notifyComplete(partition);
+					controller.removePartition(partition);
+				}
 				if (server.currentQuery == null) {
 					return;
 				}
-				Logger.getAnonymousLogger().log(Level.INFO, "Work block is complete, sending more work");
+				logger.log(Level.INFO, "Work block is complete, sending more work");
 				Partition newPartition = server.pm.requestPartition(server.WORKSIZE);
 				if (newPartition == null) {
-					Logger.getAnonymousLogger().log(Level.INFO, "Plaintext space exaused");
+					logger.log(Level.INFO, "Plaintext space exaused");
 					return;
 				}
 				try {
