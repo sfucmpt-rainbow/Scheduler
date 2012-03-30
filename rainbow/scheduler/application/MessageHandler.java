@@ -145,6 +145,8 @@ public class MessageHandler {
 
 			@Override
 			public void execute(Message m) {
+				RequestQueryMessage message = (RequestQueryMessage)m;
+				server.currentQuery = message.getQuery();
 				server.pm.reset();
 				server.startTime = System.currentTimeMillis();
 				for (Controller controller : server.controllers) {

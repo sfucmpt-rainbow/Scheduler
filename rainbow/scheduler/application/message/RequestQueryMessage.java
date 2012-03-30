@@ -20,4 +20,9 @@ public class RequestQueryMessage extends SchedulerMessage {
 		super(LABEL, "");
 		this.query = q;
 	}
+
+	public HashQuery getQuery() {
+		return query;
+	}
+	
 }
