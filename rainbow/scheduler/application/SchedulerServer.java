@@ -100,9 +100,9 @@ public class SchedulerServer extends Thread {
 			System.out.println("Error, invalid query");
 			return;
 		}
-		currentQuery = new HashQuery(query, "md5");
+		HashQuery hashquery = new HashQuery(query, "md5");
 		
-		RequestQueryMessage queryMessage = new RequestQueryMessage(currentQuery);
+		RequestQueryMessage queryMessage = new RequestQueryMessage(hashquery);
 		protocol.addMessage(queryMessage);
 	}
 
