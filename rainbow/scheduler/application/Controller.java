@@ -66,4 +66,8 @@ public class Controller {
 	public void removePartition(Partition partition) {
 		assignedPartitions.remove(partition);
 	}
+
+	public void synchronize() {
+		protocol.synchronize();
+	}
 }

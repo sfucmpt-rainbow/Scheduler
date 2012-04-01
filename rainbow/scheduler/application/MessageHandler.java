@@ -66,6 +66,7 @@ public class MessageHandler {
 				for (Controller controller : server.controllers) {
 					try {
 						controller.stopQuery();
+						controller.synchronize(); // converge state
 					} catch (IOException e) {
 						e.printStackTrace();
 					}
@@ -152,13 +153,19 @@ public class MessageHandler {
 				for (Controller controller : server.controllers) {
 					try {
 						controller.sendQuery(server.currentQuery);
-						List<Partition> assigned =
-								server.pm.stripedRequestPartitions(server.WORKSIZE, server.MESSAGES_BUFFERED);
-						for (Partition p : assigned) {
-							controller.assignPartition(p);
-						}
 					} catch (IOException e) {
 						e.printStackTrace();
+					}
+				}
+
+				for (int i = 0; i < server.MESSAGES_BUFFERED; i++) {
+					for (Controller controller : server.controllers) {
+						try {
+							Partition p = server.pm.requestPartition(server.WORKSIZE);
+							controller.assignPartition(p);
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
 					}
 				}
 			}
